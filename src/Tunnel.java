@@ -215,7 +215,6 @@ class TunnelChannel extends Thread implements Runnable {
 
 	public String host;
 	public int port;
-	static final int DEFAULT_TELNET_PORT = 23;
 
 	public TunnelChannel(String host, int port, Socket realClientSideSock) {
 		this.init();
@@ -317,7 +316,7 @@ class TunnelChannel extends Thread implements Runnable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		
 		try{
 			if(this.forwardSideSock != null){
