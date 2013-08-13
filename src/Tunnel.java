@@ -22,21 +22,20 @@ public class Tunnel extends Thread implements Runnable {
 	int forwardPort = 8192;
 	int tunnelServerPort = 8202; 
 	public Tunnel(String forwardHost, int forwardPort, int tunnelPort){
-		if((forwardHost.equalsIgnoreCase("127.0.0.1") || forwardHost.equalsIgnoreCase("localhost")) && forwardPort == tunnelPort){
-			System.out.println("Forwarding optional error please check. Please specify in different port between the forwading port and tunnel channel port at forwarding host["+forwardHost+"]");
-			System.exit(0);
-		}else{
-			this.forwardHost = forwardHost;
-			this.forwardPort = forwardPort;
-			this.tunnelServerPort = tunnelPort;
-			try {
-				tunnelServerSock = new ServerSocket(this.tunnelServerPort);
-				tunnelServerSock.setReuseAddress(true);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+		this.forwardHost = forwardHost;
+		this.forwardPort = forwardPort;
+		this.tunnelServerPort = tunnelPort;
+		try {
+			tunnelServerSock = new ServerSocket(this.tunnelServerPort);
+			tunnelServerSock.setReuseAddress(true);
+			if((forwardHost.equalsIgnoreCase("127.0.0.1") || forwardHost.equalsIgnoreCase("localhost") || forwardHost.equalsIgnoreCase(this.tunnelServerSock.getInetAddress().getHostName()) || forwardHost.equalsIgnoreCase(this.tunnelServerSock.getInetAddress().getCanonicalHostName()) || forwardHost.equalsIgnoreCase(this.tunnelServerSock.getInetAddress().getHostAddress())) && forwardPort == tunnelPort){
+				System.out.println("Forwarding optional error please check. Please specify in different port between the forwading port and tunnel channel port at forwarding host["+forwardHost+"]");
 				System.exit(1);
 			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 	public Tunnel(ChannelSessionInfo channelSessionInfo[]){
@@ -72,8 +71,6 @@ public class Tunnel extends Thread implements Runnable {
 		}
 	}
 	private void mainTunnel(){
-		//Socket realClientSideIncoming = null;
-		
 		Socket realClientSideIncoming = null;
 		
 		
@@ -126,13 +123,18 @@ public class Tunnel extends Thread implements Runnable {
 	            }*/
 				
 				realClientSideIncoming = tunnelServerSock.accept();
-				//realClientSideIncoming.setKeepAlive(true);
-				//realClientSideIncoming.setSoTimeout(700);
-				// t = new Tunnel(arg[0], forwardPort, tunnelServerIncoming);
 				System.out.println("sss");
-				new TunnelChannel(forwardHost, forwardPort, realClientSideIncoming).start();
-				System.out.println("qqq");
-				// t.createTunnelSession(tunnelServerIncoming);
+				System.out.println( this.tunnelServerSock.getInetAddress().getHostAddress()  + " " + this.tunnelServerSock.getInetAddress().getCanonicalHostName() + " " + this.tunnelServerSock.getInetAddress().getHostName());
+				if((forwardHost.equalsIgnoreCase("127.0.0.1") || forwardHost.equalsIgnoreCase("localhost") || forwardHost.equalsIgnoreCase(this.tunnelServerSock.getInetAddress().getHostName()) || forwardHost.equalsIgnoreCase(this.tunnelServerSock.getInetAddress().getCanonicalHostName()) || forwardHost.equalsIgnoreCase(this.tunnelServerSock.getInetAddress().getHostAddress())) && forwardPort == this.tunnelServerPort){
+					System.out.println("Forwarding optional error please check. Please specify in different port between the forwading port and tunnel channel port at forwarding host["+forwardHost+"]");
+					System.out.println("This channel will be closed!");
+					this.tunnelServerSock.close();
+					break;
+				}else{
+					new TunnelChannel(forwardHost, forwardPort, realClientSideIncoming).start();
+					
+					System.out.println("qqq");
+				}
 			} catch (Exception e) {
 				System.out.println("MAIN: " + e);
 				//System.exit(1);
@@ -153,16 +155,12 @@ public class Tunnel extends Thread implements Runnable {
 
 	// main
 	public static void main(String[] arg) {
-		//ServerSocket tunnelServerSock = null;
 		String forwardHost = "127.0.0.1";
 		int forwardPort = 8192;
 		int tunnelServerPort = 8203;
 		
 		try {
 			switch (arg.length % 3) {
-			// case 1:
-			// t = new Tunnel(arg[0]);
-			// break;
 			case 0:
 				int nodeNum = (arg.length)/3;
 				ChannelSessionInfo channelSessionInfo[] = new ChannelSessionInfo[nodeNum];
@@ -246,8 +244,13 @@ class TunnelChannel extends Thread implements Runnable {
 			
 			this.realClientSideOutput = this.realClientSideSock.getOutputStream();
 			this.realClientSideInput = new BufferedInputStream(this.realClientSideSock.getInputStream());
-			
-			ret = true;
+			if((host.equalsIgnoreCase("127.0.0.1") || host.equalsIgnoreCase("localhost") || host.equalsIgnoreCase(this.realClientSideSock.getInetAddress().getHostName()) || host.equalsIgnoreCase(this.realClientSideSock.getInetAddress().getCanonicalHostName()) || host.equalsIgnoreCase(this.realClientSideSock.getInetAddress().getHostAddress())) && port == this.realClientSideSock.getLocalPort()){
+				System.out.println("Forwarding optional error please check. Please specify in different port between the forwading port and tunnel channel port at forwarding host["+port+"]");
+				System.out.println("All channels will be closed!");
+				System.exit(1);
+			}else{
+				ret = true;
+			}
 		} catch (UnknownHostException e) {
 			System.err
 					.println("openForwardSideConnection UnknownHostException Error : "
@@ -269,7 +272,7 @@ class TunnelChannel extends Thread implements Runnable {
 			stdin_to_socket = new StreamConnector(
 					this.realClientSideInput,
 					forwardSideServerOutput, this.host, this.port, "streamin", this);
-			System.out.println("OK created stdin_to_socket");
+			System.out.println("OK created stdin_to_socket client name: " + this.realClientSideSock.getInetAddress().getHostName() + ", " + this.realClientSideSock.getInetAddress().getHostAddress() + ", " + this.realClientSideSock.getInetAddress().getCanonicalHostName() + ", " + new String(this.realClientSideSock.getInetAddress().getAddress()));
 			
 			socket_to_stdout = new StreamConnector(
 					forwardSideServerInput,
